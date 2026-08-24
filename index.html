@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Why So Serious? — Auction War Room</title>
+<meta name="theme-color" content="#0E3223" />
+<style>body { margin: 0; background: #0A241A; }</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useEffect } = React;
+
+// ------------------------------------------------------------------
+// WHY SO SERIOUS? — Auction War Room
+// Custom "beer sheet" for a 12-team, $200 keeper auction.
+// Values adjusted for league scoring: NO PPR, all yardage at HALF
+// Yahoo default (50/20/20 yds per pt), 6pt rush/rec TD, 4pt pass TD,
+// -2 INT. Net effect: QBs deflated, TD scorers boosted, volume-only
+// yardage guys trimmed. Values are editable in-app (tap a player).
+// ------------------------------------------------------------------
+
+// [name, pos, team, value, tier]
+const PLAYERS = [
+  // ----- QB (cannot be kept in this league; halved pass yds = cheap) -----
+  ["Josh Allen","QB","BUF",17,1],["Lamar Jackson","QB","BAL",16,1],["Jayden Daniels","QB","WSH",15,1],
+  ["Jalen Hurts","QB","PHI",13,1],["Joe Burrow","QB","CIN",11,2],["Drake Maye","QB","NE",9,2],
+  ["Jaxson Dart","QB","NYG",7,2],["Patrick Mahomes","QB","KC",6,2],["Baker Mayfield","QB","TB",6,2],
+  ["Dak Prescott","QB","DAL",4,3],["Justin Herbert","QB","LAC",4,3],["Jordan Love","QB","GB",4,3],
+  ["Kyler Murray","QB","ARI",3,3],["Bo Nix","QB","DEN",3,3],["Caleb Williams","QB","CHI",3,3],
+  ["Jared Goff","QB","DET",3,3],["Brock Purdy","QB","SF",2,4],["C.J. Stroud","QB","HOU",2,4],
+  ["Trevor Lawrence","QB","JAX",2,4],["Justin Fields","QB","NYJ",1,4],["Matthew Stafford","QB","LAR",1,4],
+  ["Cam Ward","QB","TEN",1,4],["Tua Tagovailoa","QB","MIA",1,4],
+  // ----- RB (keeper cost = last price + $7) -----
+  ["Jahmyr Gibbs","RB","DET",60,1],["Bijan Robinson","RB","ATL",55,1],["Jonathan Taylor","RB","IND",50,1],
+  ["James Cook","RB","BUF",43,2],["Christian McCaffrey","RB","SF",42,2],["Derrick Henry","RB","BAL",42,2],
+  ["De'Von Achane","RB","MIA",38,2],["Saquon Barkley","RB","PHI",36,2],["Ashton Jeanty","RB","LV",35,2],
+  ["Chase Brown","RB","CIN",33,3],["Kyren Williams","RB","LAR",33,3],["Omarion Hampton","RB","LAC",32,3],
+  ["Kenneth Walker III","RB","KC",32,3],["Jeremiyah Love","RB","ARI",31,3],["Josh Jacobs","RB","GB",28,3],
+  ["Bucky Irving","RB","TB",26,3],["Javonte Williams","RB","DAL",24,4],["Breece Hall","RB","NYJ",22,4],
+  ["Travis Etienne Jr.","RB","NO",20,4],["Quinshon Judkins","RB","CLE",20,4],["D'Andre Swift","RB","CHI",17,4],
+  ["Cam Skattebo","RB","NYG",17,4],["TreVeyon Henderson","RB","NE",15,5],["Kaleb Johnson","RB","PIT",13,5],
+  ["Alvin Kamara","RB","NO",12,5],["Joe Mixon","RB","HOU",11,5],["James Conner","RB","ARI",11,5],
+  ["Bhayshul Tuten","RB","JAX",10,5],["RJ Harvey","RB","DEN",10,5],["David Montgomery","RB","DET",9,5],
+  ["Tyrone Tracy Jr.","RB","NYG",7,6],["Jaylen Warren","RB","PIT",7,6],["Trey Benson","RB","ARI",6,6],
+  ["Zach Charbonnet","RB","SEA",6,6],["Chuba Hubbard","RB","CAR",5,6],["Jordan Mason","RB","MIN",5,6],
+  ["Jacory Croskey-Merritt","RB","WSH",4,6],["Rhamondre Stevenson","RB","NE",4,6],["Isiah Pacheco","RB","KC",4,6],
+  ["Tank Bigsby","RB","PHI",3,6],["Woody Marks","RB","HOU",3,6],["Dylan Sampson","RB","CLE",3,6],
+  ["Nick Chubb","RB","HOU",2,6],["Rachaad White","RB","TB",2,6],["Ollie Gordon II","RB","MIA",2,6],
+  ["Brian Robinson Jr.","RB","SF",2,6],["Najee Harris","RB","NYG",1,6],["Jaydon Blue","RB","DAL",1,6],
+  ["Ray Davis","RB","BUF",1,6],["Braelon Allen","RB","NYJ",1,6],["Blake Corum","RB","LAR",1,6],
+  // ----- WR (keeper cost = last price + $5) -----
+  ["Ja'Marr Chase","WR","CIN",42,1],["Jaxon Smith-Njigba","WR","SEA",38,1],["Puka Nacua","WR","LAR",36,1],
+  ["Amon-Ra St. Brown","WR","DET",35,1],["CeeDee Lamb","WR","DAL",33,1],["Justin Jefferson","WR","MIN",32,1],
+  ["Nico Collins","WR","HOU",31,2],["A.J. Brown","WR","NE",30,2],["Drake London","WR","ATL",30,2],
+  ["George Pickens","WR","DAL",28,2],["Rashee Rice","WR","KC",28,2],["Malik Nabers","WR","NYG",27,2],
+  ["Brian Thomas Jr.","WR","JAX",25,2],["Tee Higgins","WR","CIN",22,3],["Emeka Egbuka","WR","TB",22,3],
+  ["Garrett Wilson","WR","NYJ",21,3],["Chris Olave","WR","NO",20,3],["Zay Flowers","WR","BAL",17,3],
+  ["Tetairoa McMillan","WR","CAR",17,3],["DeVonta Smith","WR","PHI",16,3],["Jaylen Waddle","WR","DEN",15,3],
+  ["Ladd McConkey","WR","LAC",15,3],["Marvin Harrison Jr.","WR","ARI",13,4],["Rome Odunze","WR","CHI",12,4],
+  ["Jordyn Tyson","WR","ARI",12,4],["Jameson Williams","WR","DET",10,4],["DJ Moore","WR","BUF",9,4],
+  ["Luther Burden III","WR","CHI",9,4],["Carnell Tate","WR","CLE",9,4],["Travis Hunter","WR","JAX",8,4],
+  ["Xavier Worthy","WR","KC",7,4],["Mike Evans","WR","TB",6,5],["Christian Watson","WR","GB",6,5],
+  ["Terry McLaurin","WR","WSH",6,5],["Matthew Golden","WR","GB",5,5],["Davante Adams","WR","LAR",5,5],
+  ["Courtland Sutton","WR","DEN",5,5],["Jerry Jeudy","WR","CLE",4,5],["Wan'Dale Robinson","WR","NYG",4,5],
+  ["Stefon Diggs","WR","NE",4,5],["Makai Lemon","WR","NYJ",4,5],["Ricky Pearsall","WR","SF",4,5],
+  ["Jayden Higgins","WR","HOU",4,5],["Tre Harris","WR","LAC",3,5],["Keon Coleman","WR","BUF",3,5],
+  ["Jauan Jennings","WR","SF",3,5],["Marvin Mims Jr.","WR","DEN",3,5],["Josh Downs","WR","IND",2,6],
+  ["Khalil Shakir","WR","BUF",2,6],["Cooper Kupp","WR","SEA",2,6],["Rashod Bateman","WR","BAL",2,6],
+  ["Kayshon Boutte","WR","NE",2,6],["Deebo Samuel","WR","WSH",2,6],["Hollywood Brown","WR","KC",1,6],
+  // ----- TE (keeper cost = last price + $5) -----
+  ["Brock Bowers","TE","LV",24,1],["Trey McBride","TE","ARI",22,1],["Colston Loveland","TE","CHI",15,2],
+  ["Tyler Warren","TE","IND",15,2],["Harold Fannin Jr.","TE","CLE",10,2],["Sam LaPorta","TE","DET",9,3],
+  ["George Kittle","TE","SF",8,3],["Oronde Gadsden II","TE","LAC",5,3],["Tucker Kraft","TE","GB",4,4],
+  ["Mark Andrews","TE","BAL",4,4],["Dalton Kincaid","TE","BUF",4,4],["T.J. Hockenson","TE","MIN",3,4],
+  ["David Njoku","TE","CLE",3,4],["Travis Kelce","TE","KC",3,4],["Kyle Pitts Sr.","TE","ATL",2,4],
+  ["Jake Ferguson","TE","DAL",2,4],["Evan Engram","TE","DEN",1,4],["Isaiah Likely","TE","BAL",1,4],
+  ["AJ Barner","TE","SEA",1,4],
+  // ----- K (league adds -1 missed PAT, 4/5 pt long FGs) -----
+  ["Brandon Aubrey","K","DAL",3,1],["Jake Bates","K","DET",2,1],["Cameron Dicker","K","LAC",1,2],
+  ["Chris Boswell","K","PIT",1,2],["Ka'imi Fairbairn","K","HOU",1,2],["Harrison Butker","K","KC",1,2],
+  ["Wil Lutz","K","DEN",1,2],["Cairo Santos","K","CHI",1,2],
+  // ----- DST -----
+  ["Broncos D/ST","DST","DEN",3,1],["Texans D/ST","DST","HOU",2,1],["Eagles D/ST","DST","PHI",2,1],
+  ["Ravens D/ST","DST","BAL",2,1],["Steelers D/ST","DST","PIT",1,2],["Vikings D/ST","DST","MIN",1,2],
+  ["Bills D/ST","DST","BUF",1,2],["Seahawks D/ST","DST","SEA",1,2],["Packers D/ST","DST","GB",1,2],
+  ["Lions D/ST","DST","DET",1,2],["49ers D/ST","DST","SF",1,2],["Chiefs D/ST","DST","KC",1,2],
+];
+
+const MY_KEEPERS = [
+  { name: "Cam Skattebo", price: 8 },
+  { name: "Jaxon Smith-Njigba", price: 25 },
+  { name: "Tyler Warren", price: 11 },
+];
+
+const POS_META = {
+  QB:  { color: "#FF6B4A", label: "QB"  },
+  RB:  { color: "#57C785", label: "RB"  },
+  WR:  { color: "#5BA8F5", label: "WR"  },
+  TE:  { color: "#C792EA", label: "TE"  },
+  K:   { color: "#9AA5B1", label: "K"   },
+  DST: { color: "#6FC2C2", label: "DST" },
+};
+const POS_ORDER = ["ALL","RB","WR","TE","QB","K","DST"];
+
+function AuctionSheet() {
+  const freshPlayers = () =>
+    PLAYERS.map((p, i) => ({
+      id: i, name: p[0], pos: p[1], team: p[2], val: p[3], tier: p[4],
+      drafted: false, mine: false, paid: 0,
+    }));
+  const [players, setPlayers] = useState(() => {
+    try {
+      const saved = localStorage.getItem("wss-draft-v1");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === PLAYERS.length) return parsed;
+      }
+    } catch (e) {}
+    return freshPlayers();
+  });
+  const [posFilter, setPosFilter] = useState("ALL");
+  const [query, setQuery] = useState("");
+  const [hideDrafted, setHideDrafted] = useState(false);
+  const [openId, setOpenId] = useState(null);
+  const [bid, setBid] = useState(1);
+  const [teams, setTeams] = useState(12);
+  const [rosterSize, setRosterSize] = useState(17);
+  const keepersLoaded = MY_KEEPERS.every(k => players.some(p => p.name === k.name && p.drafted && p.mine));
+  const [showRoster, setShowRoster] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const BUDGET = 200;
+
+  const totals = useMemo(() => {
+    const totalMoney = teams * BUDGET;
+    const totalValue = players.reduce((s, p) => s + p.val, 0);
+    const spent = players.filter(p => p.drafted).reduce((s, p) => s + p.paid, 0);
+    const valueGone = players.filter(p => p.drafted).reduce((s, p) => s + p.val, 0);
+    const baseRatio = totalMoney / Math.max(totalValue, 1);
+    const nowRatio = (totalMoney - spent) / Math.max(totalValue - valueGone, 1);
+    const inflation = nowRatio / baseRatio;
+    const mine = players.filter(p => p.mine);
+    const mySpent = mine.reduce((s, p) => s + p.paid, 0);
+    const myRemaining = BUDGET - mySpent;
+    const spotsLeft = Math.max(rosterSize - mine.length, 0);
+    const maxBid = Math.max(myRemaining - Math.max(spotsLeft - 1, 0), 0);
+    return { inflation, mine, mySpent, myRemaining, spotsLeft, maxBid };
+  }, [players, teams, rosterSize]);
+
+  const adj = (v) => Math.max(1, Math.round(v * totals.inflation));
+
+  useEffect(() => {
+    try { localStorage.setItem("wss-draft-v1", JSON.stringify(players)); } catch (e) {}
+  }, [players]);
+
+  const resetDraft = () => {
+    if (window.confirm("Reset the entire draft board? This clears all picks, keepers, and value edits.")) {
+      setPlayers(freshPlayers());
+      setOpenId(null);
+    }
+  };
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return players
+      .filter(p => posFilter === "ALL" || p.pos === posFilter)
+      .filter(p => !hideDrafted || !p.drafted)
+      .filter(p => !q || p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q))
+      .sort((a, b) => b.val - a.val || a.name.localeCompare(b.name));
+  }, [players, posFilter, query, hideDrafted]);
+
+  const openPlayer = (p) => {
+    if (openId === p.id) { setOpenId(null); return; }
+    setOpenId(p.id);
+    setBid(p.drafted ? p.paid : Math.min(adj(p.val), Math.max(totals.maxBid, 1)));
+  };
+
+  const draft = (id, mine) => {
+    setPlayers(ps => ps.map(p => p.id === id ? { ...p, drafted: true, mine, paid: Math.max(1, bid) } : p));
+    setOpenId(null);
+  };
+  const undo = (id) => {
+    setPlayers(ps => ps.map(p => p.id === id ? { ...p, drafted: false, mine: false, paid: 0 } : p));
+    setOpenId(null);
+  };
+  const nudge = (id, d) => {
+    setPlayers(ps => ps.map(p => p.id === id ? { ...p, val: Math.max(1, p.val + d) } : p));
+  };
+  const loadKeepers = () => {
+    setPlayers(ps => ps.map(p => {
+      const k = MY_KEEPERS.find(k => k.name === p.name);
+      return k ? { ...p, drafted: true, mine: true, paid: k.price } : p;
+    }));
+  };
+
+  const infPct = Math.round((totals.inflation - 1) * 100);
+
+  return (
+    <div className="wrap">
+      <style>{css}</style>
+
+      {/* Scoreboard */}
+      <header className="board">
+        <div className="board-title">
+          <span className="board-eyebrow">$200 Keeper Auction · Standard · Half-Yardage</span>
+          <h1>WHY SO SERIOUS?</h1>
+        </div>
+        <div className="ticker">
+          <div className="tick">
+            <span className="tick-label">Budget left</span>
+            <span className="tick-num">${totals.myRemaining}</span>
+          </div>
+          <div className="tick tick-max">
+            <span className="tick-label">Max bid</span>
+            <span className="tick-num">${totals.maxBid}</span>
+          </div>
+          <div className="tick">
+            <span className="tick-label">Spots left</span>
+            <span className="tick-num">{totals.spotsLeft}</span>
+          </div>
+          <div className="tick">
+            <span className="tick-label">Inflation</span>
+            <span className="tick-num">{infPct >= 0 ? "+" : ""}{infPct}%</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Keeper loader */}
+      {!keepersLoaded && (
+        <div className="keeper-bar">
+          <div>
+            <strong>Load your keepers?</strong>
+            <span> Skattebo $8 · JSN $25 · T. Warren $11 — $44 total</span>
+          </div>
+          <button className="btn btn-amber" onClick={loadKeepers}>Load keepers</button>
+        </div>
+      )}
+
+      {/* Controls */}
+      <div className="controls">
+        <div className="chips">
+          {POS_ORDER.map(pos => (
+            <button
+              key={pos}
+              className={"chip" + (posFilter === pos ? " chip-on" : "")}
+              style={posFilter === pos && pos !== "ALL" ? { background: POS_META[pos].color, color: "#0d1f16", borderColor: POS_META[pos].color } : {}}
+              onClick={() => setPosFilter(pos)}
+            >{pos}</button>
+          ))}
+        </div>
+        <div className="control-row">
+          <input
+            className="search"
+            placeholder="Search player or team"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+          />
+          <button className={"btn btn-ghost" + (hideDrafted ? " btn-ghost-on" : "")} onClick={() => setHideDrafted(v => !v)}>
+            {hideDrafted ? "Showing available" : "Hide drafted"}
+          </button>
+        </div>
+        <div className="control-row control-links">
+          <button className="linkish" onClick={() => setShowRoster(v => !v)}>
+            My roster ({totals.mine.length}) — ${totals.mySpent}
+          </button>
+          <button className="linkish" onClick={() => setShowSettings(v => !v)}>League settings</button>
+        </div>
+        {showSettings && (
+          <div className="settings">
+            <label>Teams
+              <input type="number" min="8" max="16" value={teams} onChange={e => setTeams(Math.max(2, +e.target.value || 12))} />
+            </label>
+            <label>Roster size
+              <input type="number" min="10" max="25" value={rosterSize} onChange={e => setRosterSize(Math.max(1, +e.target.value || 17))} />
+            </label>
+          </div>
+        )}
+        {showRoster && (
+          <div className="roster">
+            {totals.mine.length === 0 && <div className="roster-empty">No players yet. Load your keepers or win a bid.</div>}
+            {totals.mine.sort((a,b) => b.paid - a.paid).map(p => (
+              <div className="roster-row" key={p.id}>
+                <span className="pos-dot" style={{ background: POS_META[p.pos].color }} />
+                <span className="roster-name">{p.name}</span>
+                <span className="roster-price">${p.paid}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Board list */}
+      <main className="list">
+        {visible.map((p, idx) => {
+          const meta = POS_META[p.pos];
+          const prevTier = idx > 0 ? visible[idx - 1].tier : null;
+          const samePosView = posFilter !== "ALL";
+          const tierBreak = samePosView && prevTier !== null && p.tier !== prevTier;
+          const open = openId === p.id;
+          return (
+            <div key={p.id}>
+              {tierBreak && <div className="tier-line"><span>Tier {p.tier}</span></div>}
+              <div
+                className={"row" + (p.drafted ? " row-gone" : "") + (p.mine ? " row-mine" : "")}
+                onClick={() => openPlayer(p)}
+              >
+                <span className="pos-tag" style={{ background: meta.color }}>{meta.label}</span>
+                <span className="row-name">
+                  {p.name}
+                  <span className="row-team">{p.team}{samePosView ? "" : ` · T${p.tier}`}</span>
+                </span>
+                {p.drafted ? (
+                  <span className="row-paid">{p.mine ? "MINE" : "GONE"} · ${p.paid}</span>
+                ) : (
+                  <span className="row-val">
+                    ${adj(p.val)}
+                    {adj(p.val) !== p.val && <span className="row-base">${p.val}</span>}
+                  </span>
+                )}
+              </div>
+              {open && (
+                <div className="panel">
+                  {!p.drafted ? (
+                    <>
+                      <div className="bidder">
+                        <button className="step" onClick={() => setBid(b => Math.max(1, b - 1))}>−</button>
+                        <span className="bid-num">${bid}</span>
+                        <button className="step" onClick={() => setBid(b => b + 1)}>+</button>
+                        <div className="bid-quick">
+                          {[1, 5].map(n => (
+                            <button key={n} className="mini" onClick={() => setBid(b => b + n)}>+{n}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="panel-actions">
+                        <button className="btn btn-amber" disabled={bid > totals.maxBid} onClick={() => draft(p.id, true)}>
+                          I won it
+                        </button>
+                        <button className="btn btn-ghost" onClick={() => draft(p.id, false)}>Other team</button>
+                      </div>
+                      {bid > totals.maxBid && <div className="warn">Over your max bid of ${totals.maxBid}</div>}
+                      <div className="value-tune">
+                        Value ${p.val}
+                        <button className="mini" onClick={() => nudge(p.id, -1)}>−1</button>
+                        <button className="mini" onClick={() => nudge(p.id, 1)}>+1</button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="panel-actions">
+                      <span className="panel-note">{p.mine ? "On your roster" : "Drafted by another team"} for ${p.paid}</span>
+                      <button className="btn btn-ghost" onClick={() => undo(p.id)}>Undo</button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {visible.length === 0 && <div className="empty">No players match. Clear the search or filters.</div>}
+      </main>
+
+      <footer className="foot">
+        Values are estimates tuned to this league's scoring (no PPR, half-yardage, TD-heavy) for a {teams}-team, $200 budget.
+        Adjusted prices rise and fall with draft-room inflation as picks come in. Your board saves automatically on this device.
+        <div style={{ marginTop: 12 }}>
+          <button className="btn btn-ghost" onClick={resetDraft}>Reset draft board</button>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+const css = `
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+* { box-sizing: border-box; margin: 0; }
+.wrap {
+  min-height: 100vh;
+  background:
+    repeating-linear-gradient(to bottom, rgba(255,255,255,0.025) 0 2px, transparent 2px 72px),
+    linear-gradient(175deg, #0E3223 0%, #0A241A 100%);
+  color: #F1F7F0;
+  font-family: 'Barlow Condensed', system-ui, sans-serif;
+  padding-bottom: 28px;
+}
+.board { padding: 18px 16px 10px; }
+.board-eyebrow {
+  font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #9FC7AC; font-weight: 600;
+}
+.board h1 {
+  font-size: 34px; font-weight: 700; letter-spacing: 0.04em; line-height: 1.05;
+  color: #FFF; margin-top: 2px;
+}
+.ticker {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px;
+}
+.tick {
+  background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; padding: 8px 6px 7px; text-align: center;
+}
+.tick-max { border-color: #FFC53D; box-shadow: 0 0 0 1px rgba(255,197,61,0.25) inset; }
+.tick-label { display:block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #93B39D; font-weight: 600; }
+.tick-num {
+  display:block; font-family: 'IBM Plex Mono', monospace; font-weight: 600;
+  font-size: 21px; color: #FFC53D; margin-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.tick:not(.tick-max) .tick-num { color: #EFF7EE; }
+
+.keeper-bar {
+  margin: 6px 16px 0; padding: 10px 12px; border-radius: 10px;
+  background: rgba(255,197,61,0.1); border: 1px dashed rgba(255,197,61,0.5);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-size: 15px;
+}
+.keeper-bar span { color: #CFE3D2; display:block; font-size: 13.5px; }
+
+.controls { padding: 12px 16px 4px; }
+.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.chip {
+  font-family: inherit; font-weight: 600; font-size: 15px; letter-spacing: 0.05em;
+  padding: 6px 13px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.22);
+  background: transparent; color: #DCEADF; cursor: pointer; flex-shrink: 0;
+}
+.chip-on { background: #F1F7F0; color: #0d1f16; border-color: #F1F7F0; }
+.control-row { display: flex; gap: 8px; margin-top: 8px; }
+.search {
+  flex: 1; font-family: inherit; font-size: 16px; padding: 8px 12px;
+  border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.3); color: #F1F7F0; min-width: 0;
+}
+.search::placeholder { color: #7E9C88; }
+.btn {
+  font-family: inherit; font-weight: 600; font-size: 15px; letter-spacing: 0.03em;
+  padding: 8px 14px; border-radius: 8px; border: 1px solid transparent; cursor: pointer;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-amber { background: #FFC53D; color: #201700; }
+.btn-ghost { background: transparent; color: #DCEADF; border-color: rgba(255,255,255,0.25); }
+.btn-ghost-on { background: rgba(255,255,255,0.12); }
+.control-links { justify-content: space-between; }
+.linkish {
+  background: none; border: none; color: #9FC7AC; font-family: inherit;
+  font-size: 15px; font-weight: 600; cursor: pointer; padding: 4px 0;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.settings { display: flex; gap: 16px; margin-top: 8px; }
+.settings label { font-size: 14px; color: #9FC7AC; display: flex; align-items: center; gap: 6px; }
+.settings input {
+  width: 56px; font-family: 'IBM Plex Mono', monospace; font-size: 15px;
+  padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.3); color: #F1F7F0;
+}
+.roster { margin-top: 8px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 6px 10px; background: rgba(0,0,0,0.25); }
+.roster-empty { padding: 8px 2px; color: #8FAE98; font-size: 14px; }
+.roster-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 16px; }
+.roster-row:last-child { border-bottom: none; }
+.pos-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.roster-name { flex: 1; }
+.roster-price { font-family: 'IBM Plex Mono', monospace; color: #FFC53D; font-size: 14px; font-weight: 600; }
+
+.list { padding: 6px 12px 0; }
+.tier-line {
+  display: flex; align-items: center; gap: 10px; margin: 12px 4px 4px;
+  color: #8FAE98; font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600;
+}
+.tier-line::before, .tier-line::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.16); }
+.row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.08); cursor: pointer;
+  border-radius: 6px;
+}
+.row:active { background: rgba(255,255,255,0.06); }
+.pos-tag {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #0d1f16;
+  border-radius: 4px; padding: 2px 6px; min-width: 34px; text-align: center; flex-shrink: 0;
+}
+.row-name { flex: 1; font-size: 18px; font-weight: 600; line-height: 1.15; min-width: 0; }
+.row-team { display: block; font-size: 12.5px; color: #8FAE98; font-weight: 500; letter-spacing: 0.04em; }
+.row-val {
+  font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 18px;
+  color: #FFC53D; font-variant-numeric: tabular-nums; text-align: right;
+}
+.row-base { display: block; font-size: 11px; color: #7E9C88; text-decoration: line-through; font-weight: 500; }
+.row-gone { opacity: 0.42; }
+.row-gone .row-name { text-decoration: line-through; }
+.row-mine { opacity: 1; background: rgba(255,197,61,0.07); }
+.row-mine .row-name { text-decoration: none; }
+.row-paid { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; color: #CFE3D2; }
+.row-mine .row-paid { color: #FFC53D; }
+
+.panel {
+  margin: 2px 4px 10px; padding: 12px; border-radius: 10px;
+  background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.15);
+}
+.bidder { display: flex; align-items: center; gap: 12px; }
+.step {
+  width: 42px; height: 42px; font-size: 24px; border-radius: 8px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.25); background: transparent; color: #F1F7F0;
+  font-family: inherit;
+}
+.bid-num {
+  font-family: 'IBM Plex Mono', monospace; font-size: 26px; font-weight: 600;
+  color: #FFC53D; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums;
+}
+.bid-quick { display: flex; gap: 6px; margin-left: auto; }
+.mini {
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 5px 9px;
+  border-radius: 6px; border: 1px solid rgba(255,255,255,0.22);
+  background: transparent; color: #DCEADF; cursor: pointer;
+}
+.panel-actions { display: flex; gap: 8px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+.panel-note { font-size: 15px; color: #CFE3D2; flex: 1; }
+.warn { margin-top: 8px; font-size: 13.5px; color: #FF9E7A; }
+.value-tune {
+  margin-top: 12px; display: flex; align-items: center; gap: 8px;
+  font-size: 13.5px; color: #8FAE98;
+}
+.empty { padding: 28px 8px; text-align: center; color: #8FAE98; font-size: 16px; }
+.foot { padding: 18px 20px 0; font-size: 13px; color: #7E9C88; line-height: 1.5; max-width: 640px; }
+
+@media (min-width: 700px) {
+  .board, .controls, .foot { max-width: 760px; margin-left: auto; margin-right: auto; }
+  .list { max-width: 760px; margin: 0 auto; }
+  .board h1 { font-size: 44px; }
+}
+`;
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<AuctionSheet />);
+</script>
+</body>
+</html>
