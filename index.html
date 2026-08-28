@@ -104,7 +104,7 @@ body {
 </header>
 
 <div class="keeper-bar" id="keeper-bar">
-  <div><strong>Load your keepers?</strong><em>Skattebo $8 &middot; JSN $25 &middot; T. Warren $11 &mdash; $44 total</em></div>
+  <div><strong>Load league keepers?</strong><em>All 18 keepers, yours marked MINE (Skattebo $8 &middot; JSN $25 &middot; Warren $11)</em></div>
   <button class="btn btn-amber" id="load-keepers">Load keepers</button>
 </div>
 
@@ -138,75 +138,115 @@ body {
 // $200 keeper auction · 12 teams · standard scoring, half-yardage, TD-heavy
 
 var PLAYERS_RAW = [
-  // QB
-  ["Josh Allen","QB","BUF",17,1],["Lamar Jackson","QB","BAL",16,1],["Jayden Daniels","QB","WSH",15,1],
+  ["Josh Allen","QB","BUF",17,1],["Lamar Jackson","QB","BAL",16,1],["Jayden Daniels","QB","WAS",15,1],
   ["Jalen Hurts","QB","PHI",13,1],["Joe Burrow","QB","CIN",11,2],["Drake Maye","QB","NE",9,2],
   ["Jaxson Dart","QB","NYG",7,2],["Patrick Mahomes","QB","KC",6,2],["Baker Mayfield","QB","TB",6,2],
   ["Dak Prescott","QB","DAL",4,3],["Justin Herbert","QB","LAC",4,3],["Jordan Love","QB","GB",4,3],
-  ["Kyler Murray","QB","ARI",3,3],["Bo Nix","QB","DEN",3,3],["Caleb Williams","QB","CHI",3,3],
+  ["Kyler Murray","QB","MIN",3,3],["Bo Nix","QB","DEN",3,3],["Caleb Williams","QB","CHI",3,3],
   ["Jared Goff","QB","DET",3,3],["Brock Purdy","QB","SF",2,4],["C.J. Stroud","QB","HOU",2,4],
   ["Trevor Lawrence","QB","JAX",2,4],["Justin Fields","QB","NYJ",1,4],["Matthew Stafford","QB","LAR",1,4],
-  ["Cam Ward","QB","TEN",1,4],["Tua Tagovailoa","QB","MIA",1,4],
-  // RB
+  ["Cam Ward","QB","TEN",1,4],["Tua Tagovailoa","QB","MIA",1,4],["Sam Darnold","QB","SEA",1,4],
+  ["Tyler Shough","QB","NO",1,4],["Daniel Jones","QB","IND",1,4],["Michael Penix Jr.","QB","ATL",1,4],
   ["Jahmyr Gibbs","RB","DET",60,1],["Bijan Robinson","RB","ATL",55,1],["Jonathan Taylor","RB","IND",50,1],
-  ["James Cook","RB","BUF",43,2],["Christian McCaffrey","RB","SF",42,2],["Derrick Henry","RB","BAL",42,2],
+  ["James Cook","RB","BUF",43,2],["Christian McCaffrey","RB","SF",38,2],["Derrick Henry","RB","BAL",42,2],
   ["De'Von Achane","RB","MIA",38,2],["Saquon Barkley","RB","PHI",36,2],["Ashton Jeanty","RB","LV",35,2],
   ["Chase Brown","RB","CIN",33,3],["Kyren Williams","RB","LAR",33,3],["Omarion Hampton","RB","LAC",32,3],
   ["Kenneth Walker III","RB","KC",32,3],["Jeremiyah Love","RB","ARI",31,3],["Josh Jacobs","RB","GB",28,3],
-  ["Bucky Irving","RB","TB",26,3],["Javonte Williams","RB","DAL",24,4],["Breece Hall","RB","NYJ",22,4],
-  ["Travis Etienne Jr.","RB","NO",20,4],["Quinshon Judkins","RB","CLE",20,4],["D'Andre Swift","RB","CHI",17,4],
-  ["Cam Skattebo","RB","NYG",17,4],["TreVeyon Henderson","RB","NE",15,5],["Kaleb Johnson","RB","PIT",13,5],
-  ["Alvin Kamara","RB","NO",12,5],["Joe Mixon","RB","HOU",11,5],["James Conner","RB","ARI",11,5],
-  ["Bhayshul Tuten","RB","JAX",10,5],["RJ Harvey","RB","DEN",10,5],["David Montgomery","RB","DET",9,5],
-  ["Tyrone Tracy Jr.","RB","NYG",7,6],["Jaylen Warren","RB","PIT",7,6],["Trey Benson","RB","ARI",6,6],
-  ["Zach Charbonnet","RB","SEA",6,6],["Chuba Hubbard","RB","CAR",5,6],["Jordan Mason","RB","MIN",5,6],
-  ["Jacory Croskey-Merritt","RB","WSH",4,6],["Rhamondre Stevenson","RB","NE",4,6],["Isiah Pacheco","RB","KC",4,6],
-  ["Tank Bigsby","RB","PHI",3,6],["Woody Marks","RB","HOU",3,6],["Dylan Sampson","RB","CLE",3,6],
-  ["Nick Chubb","RB","HOU",2,6],["Rachaad White","RB","TB",2,6],["Ollie Gordon II","RB","MIA",2,6],
-  ["Brian Robinson Jr.","RB","SF",2,6],["Najee Harris","RB","NYG",1,6],["Jaydon Blue","RB","DAL",1,6],
-  ["Ray Davis","RB","BUF",1,6],["Braelon Allen","RB","NYJ",1,6],["Blake Corum","RB","LAR",1,6],
-  // WR
+  ["Travis Etienne Jr.","RB","NO",24,3],["Bucky Irving","RB","TB",24,3],["Javonte Williams","RB","DAL",24,4],
+  ["Breece Hall","RB","NYJ",22,4],["Quinshon Judkins","RB","CLE",20,4],["D'Andre Swift","RB","CHI",17,4],
+  ["Cam Skattebo","RB","NYG",17,4],["David Montgomery","RB","HOU",15,4],["TreVeyon Henderson","RB","NE",15,5],
+  ["Kaleb Johnson","RB","PIT",12,5],["Jadarian Price","RB","SEA",12,5],["Bhayshul Tuten","RB","JAX",12,5],
+  ["Alvin Kamara","RB","NO",11,5],["Joe Mixon","RB","HOU",10,5],["James Conner","RB","ARI",5,6],
+  ["RJ Harvey","RB","DEN",10,5],["Jaylen Warren","RB","PIT",7,6],["Rico Dowdle","RB","PIT",7,6],
+  ["Tyrone Tracy Jr.","RB","NYG",6,6],["Jonathon Brooks","RB","CAR",6,6],["J.K. Dobbins","RB","DEN",6,6],
+  ["Rhamondre Stevenson","RB","NE",6,6],["Trey Benson","RB","ARI",5,6],["Blake Corum","RB","LAR",5,6],
+  ["Aaron Jones Sr.","RB","MIN",5,6],["Tony Pollard","RB","TEN",5,6],["Zach Charbonnet","RB","SEA",5,6],
+  ["Chuba Hubbard","RB","CAR",5,6],["Jordan Mason","RB","MIN",4,6],["Jacory Croskey-Merritt","RB","WAS",4,6],
+  ["Kyle Monangai","RB","CHI",4,6],["Rachaad White","RB","WAS",4,6],["Woody Marks","RB","HOU",3,6],
+  ["Dylan Sampson","RB","CLE",3,6],["Chris Rodriguez Jr.","RB","JAX",3,6],["Kenneth Gainwell","RB","TB",3,6],
+  ["Isiah Pacheco","RB","DET",2,6],["Tank Bigsby","RB","PHI",2,6],["Tyler Allgeier","RB","ARI",2,6],
+  ["Keaton Mitchell","RB","LAC",2,6],["Nick Chubb","RB","HOU",2,6],["Ollie Gordon II","RB","MIA",2,6],
+  ["Brian Robinson Jr.","RB","ATL",2,6],["Tyjae Spears","RB","TEN",1,6],["Jonah Coleman","RB","DEN",1,6],
+  ["MarShawn Lloyd","RB","GB",1,6],["Najee Harris","RB","NYG",1,6],["Jaydon Blue","RB","DAL",1,6],
+  ["Ray Davis","RB","BUF",1,6],["Braelon Allen","RB","NYJ",1,6],["Mike Washington Jr.","RB","LV",1,6],
+  ["Sean Tucker","RB","TB",1,6],["Nick Singleton","RB","TEN",1,6],["Emmett Johnson","RB","KC",1,6],
+  ["Kaelon Black","RB","SF",1,6],["Kaytron Allen","RB","WAS",1,6],["George Holani","RB","SEA",1,6],
   ["Ja'Marr Chase","WR","CIN",42,1],["Jaxon Smith-Njigba","WR","SEA",38,1],["Puka Nacua","WR","LAR",36,1],
   ["Amon-Ra St. Brown","WR","DET",35,1],["CeeDee Lamb","WR","DAL",33,1],["Justin Jefferson","WR","MIN",32,1],
-  ["Nico Collins","WR","HOU",31,2],["A.J. Brown","WR","NE",30,2],["Drake London","WR","ATL",30,2],
-  ["George Pickens","WR","DAL",28,2],["Rashee Rice","WR","KC",28,2],["Malik Nabers","WR","NYG",27,2],
-  ["Brian Thomas Jr.","WR","JAX",25,2],["Tee Higgins","WR","CIN",22,3],["Emeka Egbuka","WR","TB",22,3],
-  ["Garrett Wilson","WR","NYJ",21,3],["Chris Olave","WR","NO",20,3],["Zay Flowers","WR","BAL",17,3],
-  ["Tetairoa McMillan","WR","CAR",17,3],["DeVonta Smith","WR","PHI",16,3],["Jaylen Waddle","WR","DEN",15,3],
-  ["Ladd McConkey","WR","LAC",15,3],["Marvin Harrison Jr.","WR","ARI",13,4],["Rome Odunze","WR","CHI",12,4],
-  ["Jordyn Tyson","WR","ARI",12,4],["Jameson Williams","WR","DET",10,4],["DJ Moore","WR","BUF",9,4],
-  ["Luther Burden III","WR","CHI",9,4],["Carnell Tate","WR","CLE",9,4],["Travis Hunter","WR","JAX",8,4],
-  ["Xavier Worthy","WR","KC",7,4],["Mike Evans","WR","TB",6,5],["Christian Watson","WR","GB",6,5],
-  ["Terry McLaurin","WR","WSH",6,5],["Matthew Golden","WR","GB",5,5],["Davante Adams","WR","LAR",5,5],
-  ["Courtland Sutton","WR","DEN",5,5],["Jerry Jeudy","WR","CLE",4,5],["Wan'Dale Robinson","WR","NYG",4,5],
-  ["Stefon Diggs","WR","NE",4,5],["Makai Lemon","WR","NYJ",4,5],["Ricky Pearsall","WR","SF",4,5],
-  ["Jayden Higgins","WR","HOU",4,5],["Tre Harris","WR","LAC",3,5],["Keon Coleman","WR","BUF",3,5],
-  ["Jauan Jennings","WR","SF",3,5],["Marvin Mims Jr.","WR","DEN",3,5],["Josh Downs","WR","IND",2,6],
-  ["Khalil Shakir","WR","BUF",2,6],["Cooper Kupp","WR","SEA",2,6],["Rashod Bateman","WR","BAL",2,6],
-  ["Kayshon Boutte","WR","NE",2,6],["Deebo Samuel","WR","WSH",2,6],["Hollywood Brown","WR","KC",1,6],
-  // TE
-  ["Brock Bowers","TE","LV",24,1],["Trey McBride","TE","ARI",22,1],["Colston Loveland","TE","CHI",15,2],
-  ["Tyler Warren","TE","IND",15,2],["Harold Fannin Jr.","TE","CLE",10,2],["Sam LaPorta","TE","DET",9,3],
-  ["George Kittle","TE","SF",8,3],["Oronde Gadsden II","TE","LAC",5,3],["Tucker Kraft","TE","GB",4,4],
-  ["Mark Andrews","TE","BAL",4,4],["Dalton Kincaid","TE","BUF",4,4],["T.J. Hockenson","TE","MIN",3,4],
-  ["David Njoku","TE","CLE",3,4],["Travis Kelce","TE","KC",3,4],["Kyle Pitts Sr.","TE","ATL",2,4],
-  ["Jake Ferguson","TE","DAL",2,4],["Evan Engram","TE","DEN",1,4],["Isaiah Likely","TE","BAL",1,4],
-  ["AJ Barner","TE","SEA",1,4],
-  // K
-  ["Brandon Aubrey","K","DAL",3,1],["Jake Bates","K","DET",2,1],["Cameron Dicker","K","LAC",1,2],
-  ["Chris Boswell","K","PIT",1,2],["Ka'imi Fairbairn","K","HOU",1,2],["Harrison Butker","K","KC",1,2],
-  ["Wil Lutz","K","DEN",1,2],["Cairo Santos","K","CHI",1,2],
-  // DST
-  ["Broncos D/ST","DST","DEN",3,1],["Texans D/ST","DST","HOU",2,1],["Eagles D/ST","DST","PHI",2,1],
-  ["Ravens D/ST","DST","BAL",2,1],["Steelers D/ST","DST","PIT",1,2],["Vikings D/ST","DST","MIN",1,2],
-  ["Bills D/ST","DST","BUF",1,2],["Seahawks D/ST","DST","SEA",1,2],["Packers D/ST","DST","GB",1,2],
-  ["Lions D/ST","DST","DET",1,2],["49ers D/ST","DST","SF",1,2],["Chiefs D/ST","DST","KC",1,2]
+  ["Nico Collins","WR","HOU",31,2],["A.J. Brown","WR","PHI",30,2],["Drake London","WR","ATL",30,2],
+  ["George Pickens","WR","DAL",28,2],["Rashee Rice","WR","KC",28,2],["Malik Nabers","WR","NYG",24,2],
+  ["Chris Olave","WR","NO",22,3],["Tee Higgins","WR","CIN",22,3],["Garrett Wilson","WR","NYJ",21,3],
+  ["Emeka Egbuka","WR","TB",20,3],["Tetairoa McMillan","WR","CAR",18,3],["Zay Flowers","WR","BAL",17,3],
+  ["DeVonta Smith","WR","PHI",16,3],["Jaylen Waddle","WR","DEN",15,3],["Ladd McConkey","WR","LAC",15,3],
+  ["Marvin Harrison Jr.","WR","ARI",13,4],["Mike Evans","WR","SF",12,4],["Brian Thomas Jr.","WR","JAX",12,4],
+  ["Rome Odunze","WR","CHI",12,4],["Davante Adams","WR","LAR",10,4],["Jameson Williams","WR","DET",10,4],
+  ["DJ Moore","WR","BUF",9,4],["Luther Burden III","WR","CHI",9,4],["Carnell Tate","WR","TEN",9,4],
+  ["DK Metcalf","WR","PIT",8,4],["Parker Washington","WR","JAX",8,4],["Terry McLaurin","WR","WAS",8,4],
+  ["Christian Watson","WR","GB",7,4],["Jordan Addison","WR","MIN",7,4],["Travis Hunter","WR","JAX",6,5],
+  ["Xavier Worthy","WR","KC",6,5],["Makai Lemon","WR","PHI",6,5],["Jordyn Tyson","WR","NO",4,5],
+  ["Michael Wilson","WR","ARI",4,5],["Courtland Sutton","WR","DEN",4,5],["Matthew Golden","WR","GB",4,5],
+  ["Chris Godwin","WR","TB",3,5],["Stefon Diggs","WR","WAS",3,5],["Jayden Reed","WR","GB",3,5],
+  ["Jakobi Meyers","WR","JAX",3,5],["Josh Downs","WR","IND",3,5],["Wan'Dale Robinson","WR","TEN",3,5],
+  ["Khalil Shakir","WR","BUF",2,5],["Romeo Doubs","WR","NE",2,6],["KC Concepcion","WR","CLE",2,6],
+  ["Quentin Johnston","WR","LAC",2,6],["Alec Pierce","WR","IND",2,6],["Ricky Pearsall","WR","SF",2,6],
+  ["Tre Harris","WR","LAC",2,6],["Keon Coleman","WR","BUF",2,6],
+  ["Jerry Jeudy","WR","CLE",2,6],["Jauan Jennings","WR","MIN",2,6],["Marvin Mims Jr.","WR","DEN",2,6],
+  ["De'Zhaun Stribling","WR","SF",1,6],["Jalen Coker","WR","CAR",1,6],["Rashid Shaheed","WR","SEA",1,6],
+  ["Omar Cooper Jr.","WR","NYJ",1,6],["Keenan Allen","WR","IND",1,6],["Tre Tucker","WR","LV",1,6],
+  ["Denzel Boston","WR","CLE",1,6],["Jalen McMillan","WR","TB",1,6],["Ja'Kobi Lane","WR","BAL",1,6],
+  ["Caleb Douglas","WR","MIA",1,6],["Germie Bernard","WR","PIT",1,6],["Adonai Mitchell","WR","NYJ",1,6],
+  ["Pat Bryant","WR","DEN",1,6],["Ted Hurst","WR","TB",1,6],["Dontayvion Wicks","WR","PHI",1,6],
+  ["Malik Washington","WR","MIA",1,6],["Cyrus Allen","WR","KC",1,6],["Zachariah Branch","WR","ATL",1,6],
+  ["Jaylin Noel","WR","HOU",1,6],["Bryce Lance","WR","NO",1,6],["DeVaughn Vele","WR","NO",1,6],
+  ["Jalen Nailor","WR","LV",1,6],["Tank Dell","WR","HOU",1,6],["Isaac TeSlaa","WR","DET",1,6],
+  ["Cooper Kupp","WR","SEA",1,6],["Kayshon Boutte","WR","NE",1,6],["Rashod Bateman","WR","BAL",1,6],
+  ["Deebo Samuel","WR","FA",1,6],["Hollywood Brown","WR","KC",1,6],["Brock Bowers","TE","LV",24,1],
+  ["Trey McBride","TE","ARI",22,1],["Colston Loveland","TE","CHI",15,2],["Tyler Warren","TE","IND",15,2],
+  ["Harold Fannin Jr.","TE","CLE",10,2],["Sam LaPorta","TE","DET",9,3],["George Kittle","TE","SF",5,3],
+  ["Tucker Kraft","TE","GB",6,3],["Jake Ferguson","TE","DAL",4,4],["Dalton Kincaid","TE","BUF",4,4],
+  ["Travis Kelce","TE","KC",4,4],["Mark Andrews","TE","BAL",4,4],["Kyle Pitts Sr.","TE","ATL",4,4],
+  ["Oronde Gadsden II","TE","LAC",3,4],["Dallas Goedert","TE","PHI",2,4],["T.J. Hockenson","TE","MIN",2,4],
+  ["David Njoku","TE","CLE",2,4],["Juwan Johnson","TE","NO",1,4],["Isaiah Likely","TE","NYG",1,4],
+  ["Chig Okonkwo","TE","WAS",1,4],["Hunter Henry","TE","NE",1,4],["Brenton Strange","TE","JAX",1,4],
+  ["Kenyon Sadiq","TE","NYJ",1,4],["Dalton Schultz","TE","HOU",2,4],["Darren Waller","TE","CAR",1,4],
+  ["Evan Engram","TE","DEN",1,4],["AJ Barner","TE","SEA",1,4],["Brandon Aubrey","K","DAL",3,1],
+  ["Jake Bates","K","DET",2,1],["Cameron Dicker","K","LAC",1,2],["Chris Boswell","K","PIT",1,2],
+  ["Ka'imi Fairbairn","K","HOU",1,2],["Harrison Butker","K","KC",1,2],["Wil Lutz","K","DEN",1,2],
+  ["Cairo Santos","K","CHI",1,2],["Broncos D/ST","DST","DEN",3,1],["Texans D/ST","DST","HOU",2,1],
+  ["Eagles D/ST","DST","PHI",2,1],["Ravens D/ST","DST","BAL",2,1],["Steelers D/ST","DST","PIT",1,2],
+  ["Vikings D/ST","DST","MIN",1,2],["Bills D/ST","DST","BUF",1,2],["Seahawks D/ST","DST","SEA",1,2],
+  ["Packers D/ST","DST","GB",1,2],["Lions D/ST","DST","DET",1,2],["49ers D/ST","DST","SF",1,2],
+  ["Chiefs D/ST","DST","KC",1,2]
 ];
 
 var MY_KEEPERS = [
-  { name: "Cam Skattebo", price: 8 },
-  { name: "Jaxon Smith-Njigba", price: 25 },
-  { name: "Tyler Warren", price: 11 }
+  // Philly Express (you)
+  { name: "Jaxon Smith-Njigba", price: 25, mine: true },
+  { name: "Cam Skattebo", price: 8, mine: true },
+  { name: "Tyler Warren", price: 11, mine: true },
+  // Chirayu
+  { name: "Bhayshul Tuten", price: 8, mine: false },
+  { name: "Luther Burden III", price: 6, mine: false },
+  // Milan
+  { name: "Rashee Rice", price: 9, mine: false },
+  { name: "James Cook", price: 42, mine: false },
+  { name: "Colston Loveland", price: 8, mine: false },
+  // Nazmul
+  { name: "Jahmyr Gibbs", price: 55, mine: false },
+  { name: "Khalil Shakir", price: 11, mine: false },
+  // Kunal
+  { name: "Malik Nabers", price: 23, mine: false },
+  { name: "Rico Dowdle", price: 8, mine: false },
+  // Fazz
+  { name: "Tetairoa McMillan", price: 20, mine: false },
+  // Aayush
+  { name: "Brock Bowers", price: 16, mine: false },
+  { name: "Ladd McConkey", price: 12, mine: false },
+  // Bhushan
+  { name: "Jonathan Taylor", price: 52, mine: false },
+  // Milin Ball
+  { name: "Puka Nacua", price: 36, mine: false },
+  { name: "Javonte Williams", price: 11, mine: false }
 ];
 
 var POS_COLORS = { QB: "#FF6B4A", RB: "#57C785", WR: "#5BA8F5", TE: "#C792EA", K: "#9AA5B1", DST: "#6FC2C2" };
@@ -319,7 +359,7 @@ function nudgeVal(id, d) {
 function loadKeepers() {
   state.players.forEach(function (p) {
     for (var i = 0; i < MY_KEEPERS.length; i++) {
-      if (MY_KEEPERS[i].name === p.name) { p.drafted = true; p.mine = true; p.paid = MY_KEEPERS[i].price; }
+      if (MY_KEEPERS[i].name === p.name) { p.drafted = true; p.mine = !!MY_KEEPERS[i].mine; p.paid = MY_KEEPERS[i].price; }
     }
   });
   save(); renderAll();
