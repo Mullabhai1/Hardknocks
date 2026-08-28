@@ -43,6 +43,9 @@ body {
 .btn-ghost-on { background: rgba(255,255,255,0.12); }
 .control-links { justify-content: space-between; }
 .linkish { background: none; border: none; color: #9FC7AC; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer; padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; }
+.needs { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(255,197,61,0.08); border: 1px solid rgba(255,197,61,0.3); font-size: 14.5px; color: #F1E4BC; letter-spacing: 0.02em; }
+.star { color: #FFC53D; }
+.star-btn { color: #FFC53D; border-color: rgba(255,197,61,0.5); }
 .settings { display: none; gap: 16px; margin-top: 8px; }
 .settings label { font-size: 14px; color: #9FC7AC; display: flex; align-items: center; gap: 6px; }
 .settings input { width: 56px; font-family: ui-monospace, Menlo, monospace; font-size: 15px; padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #F1F7F0; }
@@ -118,6 +121,7 @@ body {
     <button class="linkish" id="roster-toggle">My roster (0) &mdash; $0</button>
     <button class="linkish" id="settings-toggle">League settings</button>
   </div>
+  <div class="needs" id="needs"></div>
   <div class="settings" id="settings-box">
     <label>Teams <input type="number" id="input-teams" min="2" max="20" value="12" /></label>
     <label>Roster size <input type="number" id="input-roster" min="1" max="30" value="17" /></label>
@@ -250,7 +254,7 @@ var MY_KEEPERS = [
 ];
 
 var POS_COLORS = { QB: "#FF6B4A", RB: "#57C785", WR: "#5BA8F5", TE: "#C792EA", K: "#9AA5B1", DST: "#6FC2C2" };
-var POS_ORDER = ["ALL", "RB", "WR", "TE", "QB", "K", "DST"];
+var POS_ORDER = ["ALL", "\u2605", "RB", "WR", "TE", "QB", "K", "DST"];
 var BUDGET = 200;
 var STORE_KEY = "wss-draft-v2";
 
@@ -351,6 +355,11 @@ function undoPlayer(id) {
   state.openId = null;
   save(); renderAll();
 }
+function toggleStar(id) {
+  var p = state.players[id];
+  p.star = !p.star;
+  save(); renderList();
+}
 function nudgeVal(id, d) {
   var p = state.players[id];
   p.val = Math.max(1, p.val + d);
@@ -372,6 +381,31 @@ function resetDraft() {
   }
 }
 
+// ---- roster needs (QB, RB x2, WR x3, TE, FLEX, K, DST + bench) ----
+function rosterNeeds() {
+  var t = totals();
+  var counts = { QB: 0, RB: 0, WR: 0, TE: 0, K: 0, DST: 0 };
+  t.mine.forEach(function (p) { counts[p.pos] = (counts[p.pos] || 0) + 1; });
+  var need = [];
+  var qb = Math.max(1 - counts.QB, 0);
+  var rb = Math.max(2 - counts.RB, 0);
+  var wr = Math.max(3 - counts.WR, 0);
+  var te = Math.max(1 - counts.TE, 0);
+  var k = Math.max(1 - counts.K, 0);
+  var d = Math.max(1 - counts.DST, 0);
+  var flexUsed = Math.max(counts.RB - 2, 0) + Math.max(counts.WR - 3, 0) + Math.max(counts.TE - 1, 0);
+  var flex = flexUsed >= 1 ? 0 : 1;
+  if (rb) need.push("RB\u00d7" + rb);
+  if (wr) need.push("WR\u00d7" + wr);
+  if (flex) need.push("FLEX");
+  if (qb) need.push("QB");
+  if (te) need.push("TE");
+  if (k) need.push("K");
+  if (d) need.push("DST");
+  var startersOpen = qb + rb + wr + te + k + d + flex;
+  return { need: need, startersOpen: startersOpen, spotsLeft: t.spotsLeft, myRemaining: t.myRemaining };
+}
+
 // ---- rendering ----
 function renderStats() {
   var t = totals();
@@ -382,6 +416,16 @@ function renderStats() {
   el("stat-inf").textContent = (infPct >= 0 ? "+" : "") + infPct + "%";
   el("roster-toggle").textContent = "My roster (" + t.mine.length + ") — $" + t.mySpent;
   el("keeper-bar").style.display = keepersLoaded() ? "none" : "flex";
+  var n = rosterNeeds();
+  if (n.spotsLeft === 0) {
+    el("needs").textContent = "Roster full \u2014 good luck this season.";
+  } else if (n.need.length === 0) {
+    el("needs").textContent = "Starters filled \u00b7 " + n.spotsLeft + " bench spots \u00b7 $" + n.myRemaining + " left";
+  } else {
+    var benchOpen = n.spotsLeft - n.startersOpen;
+    var reserve = Math.max(n.spotsLeft - 1, 0);
+    el("needs").textContent = "Still need: " + n.need.join(" \u00b7 ") + (benchOpen > 0 ? "  (+" + benchOpen + " bench)" : "") + " \u2014 top bid available: $" + Math.max(n.myRemaining - reserve, 0);
+  }
 }
 
 function renderRoster() {
@@ -417,7 +461,8 @@ function renderChips() {
 function visiblePlayers() {
   var q = state.query.trim().toLowerCase();
   return state.players.filter(function (p) {
-    if (state.posFilter !== "ALL" && p.pos !== state.posFilter) return false;
+    if (state.posFilter === "\u2605") { if (!p.star) return false; }
+    else if (state.posFilter !== "ALL" && p.pos !== state.posFilter) return false;
     if (state.hideDrafted && p.drafted) return false;
     if (q && p.name.toLowerCase().indexOf(q) === -1 && p.team.toLowerCase().indexOf(q) === -1) return false;
     return true;
@@ -427,7 +472,7 @@ function visiblePlayers() {
 function renderList() {
   var t = totals();
   var list = visiblePlayers();
-  var samePosView = state.posFilter !== "ALL";
+  var samePosView = state.posFilter !== "ALL" && state.posFilter !== "\u2605";
   var html = [];
   var prevTier = null;
 
@@ -449,7 +494,7 @@ function renderList() {
     html.push(
       '<div class="' + cls + '" data-open="' + p.id + '">' +
         '<span class="pos-tag" style="background:' + POS_COLORS[p.pos] + '">' + p.pos + "</span>" +
-        '<span class="row-name">' + esc(p.name) +
+        '<span class="row-name">' + (p.star ? '<span class="star">\u2605</span> ' : "") + esc(p.name) +
           '<span class="row-team">' + esc(p.team) + (samePosView ? "" : " · T" + p.tier) + "</span></span>" +
         right +
       "</div>"
@@ -471,7 +516,7 @@ function renderList() {
               '<button class="btn btn-ghost" data-other="' + p.id + '">Other team</button>' +
             "</div>" +
             (over ? '<div class="warn">Over your max bid of $' + t.maxBid + "</div>" : "") +
-            '<div class="value-tune">Value $' + p.val +
+            '<div class="value-tune"><button class="mini star-btn" data-star="' + p.id + '">' + (p.star ? "\u2605 Targeted" : "\u2606 Target") + '</button> Value $' + p.val +
               ' <button class="mini" data-nudge="-1" data-id="' + p.id + '">&minus;1</button>' +
               ' <button class="mini" data-nudge="1" data-id="' + p.id + '">+1</button>' +
             "</div>" +
@@ -521,6 +566,7 @@ function init() {
     if ((n = closest(e.target, "data-won"))) { if (!n.disabled) draftPlayer(parseInt(n.getAttribute("data-won"), 10), true); return; }
     if ((n = closest(e.target, "data-other"))) { draftPlayer(parseInt(n.getAttribute("data-other"), 10), false); return; }
     if ((n = closest(e.target, "data-undo"))) { undoPlayer(parseInt(n.getAttribute("data-undo"), 10)); return; }
+    if ((n = closest(e.target, "data-star"))) { toggleStar(parseInt(n.getAttribute("data-star"), 10)); return; }
     if ((n = closest(e.target, "data-nudge"))) { nudgeVal(parseInt(n.getAttribute("data-id"), 10), parseInt(n.getAttribute("data-nudge"), 10)); return; }
     if ((n = closest(e.target, "data-pos"))) { state.posFilter = n.getAttribute("data-pos"); state.openId = null; renderChips(); renderList(); return; }
     if ((n = closest(e.target, "data-open"))) { openPlayer(parseInt(n.getAttribute("data-open"), 10)); return; }
