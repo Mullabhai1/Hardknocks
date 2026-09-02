@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bilimoriya League Draft Board</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --border:#2a2f3a;
+    --text:#e8eaed; --sub:#9aa3b2; --accent:#4f8cff; --green:#2fbf71;
+    --yellow:#e6b800; --red:#e5484d; --purple:#a76bf0;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1400px;margin:0 auto;padding:16px;}
+  header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  h1{font-size:20px;margin:0;}
+  .sub{color:var(--sub);font-size:13px;}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  input[type=text]{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:14px;width:220px;}
+  .posbtn{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;}
+  .posbtn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .layout{display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start;}
+  @media (max-width:900px){.layout{grid-template-columns:1fr;}}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;color:var(--sub);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);}
+  td{padding:7px 8px;border-bottom:1px solid #20242e;}
+  tr.drafted td{opacity:.28;text-decoration:line-through;}
+  tr:hover td{background:#1c2029;}
+  .tablewrap{max-height:72vh;overflow:auto;}
+  .pos-QB{color:#ff8a4c;} .pos-RB{color:#4fd67a;} .pos-WR{color:#4fa6ff;} .pos-TE{color:#e6b800;} .pos-K{color:#c58cf0;} .pos-DEF{color:#9aa3b2;}
+  .tier{display:inline-block;font-size:11px;padding:2px 6px;border-radius:6px;background:var(--panel2);border:1px solid var(--border);color:var(--sub);}
+  .flag{font-size:11px;padding:2px 6px;border-radius:6px;margin-left:6px;font-weight:600;}
+  .flag.good{background:rgba(47,191,113,.15);color:var(--green);border:1px solid rgba(47,191,113,.35);}
+  .flag.warn{background:rgba(230,184,0,.15);color:var(--yellow);border:1px solid rgba(230,184,0,.35);}
+  .flag.bad{background:rgba(229,72,77,.15);color:var(--red);border:1px solid rgba(229,72,77,.35);}
+  .note{display:block;color:var(--sub);font-size:11.5px;margin-top:2px;}
+  .draftbtn{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap;}
+  .draftbtn:hover{border-color:var(--accent);}
+  tr.drafted .draftbtn{background:var(--accent);border-color:var(--accent);color:#fff;opacity:1;text-decoration:none;}
+  .rosterslot{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:8px;margin-bottom:4px;background:var(--panel2);border:1px solid var(--border);font-size:13px;}
+  .rosterslot.filled{border-color:var(--green);}
+  .slotlabel{color:var(--sub);width:44px;font-weight:700;font-size:12px;}
+  .slotname{flex:1;padding-left:8px;}
+  .removebtn{background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;}
+  h3{margin:0 0 8px;font-size:14px;color:var(--sub);text-transform:uppercase;letter-spacing:.04em;}
+  .statline{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:12.5px;color:var(--sub);}
+  .statline b{color:var(--text);}
+  .resetbtn{background:none;border:1px solid var(--border);color:var(--sub);padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px;}
+  .needbadge{font-size:11px;padding:2px 7px;border-radius:20px;background:rgba(229,72,77,.15);color:var(--red);border:1px solid rgba(229,72,77,.35);margin-left:6px;}
+  .needbadge.ok{background:rgba(47,191,113,.15);color:var(--green);border:1px solid rgba(47,191,113,.35);}
+  ::-webkit-scrollbar{width:9px;height:9px;} ::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🏈 Bilimoriya League — Live Draft Board</h1>
+      <div class="sub">12-team · Half-PPR · Snake draft · Wed Sep 2, 8:30pm ET · Updated with Sept 2 injury news</div>
+    </div>
+    <button class="resetbtn" onclick="resetAll()">Reset draft</button>
+  </header>
+
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Search player or team..." oninput="render()">
+    <button class="posbtn active" data-pos="ALL" onclick="setPos('ALL')">All</button>
+    <button class="posbtn" data-pos="QB" onclick="setPos('QB')">QB</button>
+    <button class="posbtn" data-pos="RB" onclick="setPos('RB')">RB</button>
+    <button class="posbtn" data-pos="WR" onclick="setPos('WR')">WR</button>
+    <button class="posbtn" data-pos="TE" onclick="setPos('TE')">TE</button>
+    <button class="posbtn" data-pos="K" onclick="setPos('K')">K</button>
+    <button class="posbtn" data-pos="DEF" onclick="setPos('DEF')">DEF</button>
+    <button class="posbtn" id="flaggedBtn" data-pos="FLAG" onclick="setPos('FLAG')">⚠ Injury notes</button>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <div class="statline" id="statline"></div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th style="width:32px">#</th><th>Player</th><th>Pos</th><th>Team</th><th style="width:40px">Bye</th><th style="width:56px">Tier</th><th style="width:90px"></th></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Your Roster <span id="pickCount" class="sub"></span></h3>
+      <div id="roster"></div>
+      <h3 style="margin-top:16px">Positional Needs</h3>
+      <div id="needs" style="font-size:13px;line-height:1.9;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Player pool: Half-PPR consensus board, updated 9/2/2026 (fantasyfootballcalculator.com), with injury notes layered in ----
+const players = [
+{r:1,n:"Jahmyr Gibbs",t:"DET",p:"RB",bye:6},
+{r:2,n:"Bijan Robinson",t:"ATL",p:"RB",bye:11},
+{r:3,n:"Puka Nacua",t:"LAR",p:"WR",bye:11,flag:"warn",note:"Groin soreness, missed practice; Rams expect ready for Wk1"},
+{r:4,n:"Ja'Marr Chase",t:"CIN",p:"WR",bye:6},
+{r:5,n:"Jaxon Smith-Njigba",t:"SEA",p:"WR",bye:11},
+{r:6,n:"Jonathan Taylor",t:"IND",p:"RB",bye:13},
+{r:7,n:"Christian McCaffrey",t:"SF",p:"RB",bye:8,flag:"good",note:"Managed practice reps for tightness; expected fine Wk1"},
+{r:8,n:"Amon-Ra St. Brown",t:"DET",p:"WR",bye:6},
+{r:9,n:"Derrick Henry",t:"BAL",p:"RB",bye:13},
+{r:10,n:"James Cook III",t:"BUF",p:"RB",bye:7},
+{r:11,n:"De'Von Achane",t:"MIA",p:"RB",bye:6},
+{r:12,n:"CeeDee Lamb",t:"DAL",p:"WR",bye:14},
+{r:13,n:"Drake London",t:"ATL",p:"WR",bye:11},
+{r:14,n:"Justin Jefferson",t:"MIN",p:"WR",bye:6},
+{r:15,n:"Chase Brown",t:"CIN",p:"RB",bye:6},
+{r:16,n:"Rashee Rice",t:"KC",p:"WR",bye:5},
+{r:17,n:"Saquon Barkley",t:"PHI",p:"RB",bye:10},
+{r:18,n:"A.J. Brown",t:"NE",p:"WR",bye:11},
+{r:19,n:"George Pickens",t:"DAL",p:"WR",bye:14},
+{r:20,n:"Nico Collins",t:"HOU",p:"WR",bye:8},
+{r:21,n:"Zay Flowers",t:"BAL",p:"WR",bye:13},
+{r:22,n:"Chris Olave",t:"NO",p:"WR",bye:8},
+{r:23,n:"Kenneth Walker",t:"KC",p:"RB",bye:5},
+{r:24,n:"Ashton Jeanty",t:"LV",p:"RB",bye:13,flag:"warn",note:"Ankle sprain in practice, not considered major; small Wk1 risk"},
+{r:25,n:"Omarion Hampton",t:"LAC",p:"RB",bye:7},
+{r:26,n:"Malik Nabers",t:"NYG",p:"WR",bye:8,flag:"good",note:"On track for Wk1 off ACL/meniscus tear, limited contact in camp"},
+{r:27,n:"Kyren Williams",t:"LAR",p:"RB",bye:11},
+{r:28,n:"Jeremiyah Love",t:"ARI",p:"RB",bye:14,flag:"warn",note:"High ankle sprain ~2 weeks ago; team hopeful for Wk1, recent updates encouraging"},
+{r:29,n:"Garrett Wilson",t:"NYJ",p:"WR",bye:13},
+{r:30,n:"Javonte Williams",t:"DAL",p:"RB",bye:14},
+{r:31,n:"Tetairoa McMillan",t:"CAR",p:"WR",bye:5},
+{r:32,n:"DeVonta Smith",t:"PHI",p:"WR",bye:10},
+{r:33,n:"Breece Hall",t:"NYJ",p:"RB",bye:13,flag:"bad",note:"Out ~2-3 weeks to start the season"},
+{r:34,n:"Tee Higgins",t:"CIN",p:"WR",bye:6},
+{r:35,n:"Emeka Egbuka",t:"TB",p:"WR",bye:10},
+{r:36,n:"Davante Adams",t:"LAR",p:"WR",bye:11},
+{r:37,n:"Jameson Williams",t:"DET",p:"WR",bye:6},
+{r:38,n:"Josh Allen",t:"BUF",p:"QB",bye:7},
+{r:39,n:"Travis Etienne Jr.",t:"NO",p:"RB",bye:8},
+{r:40,n:"Cam Skattebo",t:"NYG",p:"RB",bye:8,flag:"good",note:"Full go in camp, on track as Giants RB1 for Wk1 after 2025 ankle injury"},
+{r:41,n:"Ladd McConkey",t:"LAC",p:"WR",bye:7},
+{r:42,n:"Terry McLaurin",t:"WAS",p:"WR",bye:7},
+{r:43,n:"Jaylen Waddle",t:"DEN",p:"WR",bye:10},
+{r:44,n:"D'Andre Swift",t:"CHI",p:"RB",bye:10,flag:"good",note:"Uptick in outlook — Monangai's knee issue opens more early-season work"},
+{r:45,n:"Trey McBride",t:"ARI",p:"TE",bye:14},
+{r:46,n:"Rome Odunze",t:"CHI",p:"WR",bye:10,flag:"good",note:"Clear WR1 in Chicago with Burden III sidelined by groin injury"},
+{r:47,n:"DJ Moore",t:"BUF",p:"WR",bye:7},
+{r:48,n:"Christian Watson",t:"GB",p:"WR",bye:11},
+{r:49,n:"Bucky Irving",t:"TB",p:"RB",bye:10},
+{r:50,n:"Luther Burden III",t:"CHI",p:"WR",bye:10,flag:"bad",note:"Groin injury, expected out ~3-4 weeks, could miss Wk1"},
+{r:51,n:"Brock Bowers",t:"LV",p:"TE",bye:13},
+{r:52,n:"Mike Evans",t:"SF",p:"WR",bye:8},
+{r:53,n:"Quinshon Judkins",t:"CLE",p:"RB",bye:11},
+{r:54,n:"Courtland Sutton",t:"DEN",p:"WR",bye:10},
+{r:55,n:"Alec Pierce",t:"IND",p:"WR",bye:13},
+{r:56,n:"DK Metcalf",t:"PIT",p:"WR",bye:9},
+{r:57,n:"Bhayshul Tuten",t:"JAX",p:"RB",bye:7},
+{r:58,n:"Parker Washington",t:"JAX",p:"WR",bye:7},
+{r:59,n:"Marvin Harrison Jr.",t:"ARI",p:"WR",bye:14},
+{r:60,n:"David Montgomery",t:"HOU",p:"RB",bye:8},
+{r:61,n:"Brian Thomas Jr.",t:"JAX",p:"WR",bye:7},
+{r:62,n:"Jaylen Warren",t:"PIT",p:"RB",bye:9},
+{r:63,n:"Michael Wilson",t:"ARI",p:"WR",bye:14},
+{r:64,n:"Drake Maye",t:"NE",p:"QB",bye:11},
+{r:65,n:"Joe Burrow",t:"CIN",p:"QB",bye:6},
+{r:66,n:"Lamar Jackson",t:"BAL",p:"QB",bye:13},
+{r:67,n:"TreVeyon Henderson",t:"NE",p:"RB",bye:11,flag:"good",note:"Ankle issue in camp, latest reports say good to go for Wk1"},
+{r:68,n:"Carnell Tate",t:"TEN",p:"WR",bye:9},
+{r:69,n:"Rhamondre Stevenson",t:"NE",p:"RB",bye:11},
+{r:70,n:"Chris Godwin Jr.",t:"TB",p:"WR",bye:10},
+{r:71,n:"Michael Pittman Jr.",t:"PIT",p:"WR",bye:9},
+{r:72,n:"Jakobi Meyers",t:"JAX",p:"WR",bye:7},
+{r:73,n:"Jayden Reed",t:"GB",p:"WR",bye:11},
+{r:74,n:"Tony Pollard",t:"TEN",p:"RB",bye:9},
+{r:75,n:"Quentin Johnston",t:"LAC",p:"WR",bye:7},
+{r:76,n:"Seattle",t:"SEA",p:"DEF",bye:11},
+{r:77,n:"Jordan Addison",t:"MIN",p:"WR",bye:6},
+{r:78,n:"Rico Dowdle",t:"PIT",p:"RB",bye:9},
+{r:79,n:"Stefon Diggs",t:"WAS",p:"WR",bye:7},
+{r:80,n:"Colston Loveland",t:"CHI",p:"TE",bye:10},
+{r:81,n:"Josh Downs",t:"IND",p:"WR",bye:13},
+{r:82,n:"Wan'Dale Robinson",t:"TEN",p:"WR",bye:9},
+{r:83,n:"Dak Prescott",t:"DAL",p:"QB",bye:14},
+{r:84,n:"Matthew Golden",t:"GB",p:"WR",bye:11},
+{r:85,n:"Xavier Worthy",t:"KC",p:"WR",bye:5},
+{r:86,n:"Denver",t:"DEN",p:"DEF",bye:10},
+{r:87,n:"Romeo Doubs",t:"NE",p:"WR",bye:11},
+{r:88,n:"Jadarian Price",t:"SEA",p:"RB",bye:11},
+{r:89,n:"Khalil Shakir",t:"BUF",p:"WR",bye:7},
+{r:90,n:"J.K. Dobbins",t:"DEN",p:"RB",bye:10},
+{r:91,n:"Jayden Daniels",t:"WAS",p:"QB",bye:7},
+{r:92,n:"Deebo Samuel Sr.",t:"SF",p:"WR",bye:8},
+{r:93,n:"Matthew Stafford",t:"LAR",p:"QB",bye:11},
+{r:94,n:"Chuba Hubbard",t:"CAR",p:"RB",bye:5,flag:"good",note:"Trending back for Wk1 after hamstring issue; ~60/40 timeshare w/ J.Brooks"},
+{r:95,n:"Jalen Hurts",t:"PHI",p:"QB",bye:10},
+{r:96,n:"Brock Purdy",t:"SF",p:"QB",bye:8},
+{r:97,n:"Josh Jacobs",t:"GB",p:"RB",bye:11,flag:"bad",note:"On Commissioner's Exempt List (misdemeanor charges); cannot play/practice, no return timetable. GB traded for Kaleb Johnson as insurance"},
+{r:98,n:"Caleb Williams",t:"CHI",p:"QB",bye:10},
+{r:99,n:"Tyler Warren",t:"IND",p:"TE",bye:13},
+{r:100,n:"Houston",t:"HOU",p:"DEF",bye:8},
+{r:101,n:"Trevor Lawrence",t:"JAX",p:"QB",bye:7},
+{r:102,n:"Jalen Coker",t:"CAR",p:"WR",bye:5},
+{r:103,n:"Harold Fannin Jr.",t:"CLE",p:"TE",bye:11},
+{r:104,n:"Jared Goff",t:"DET",p:"QB",bye:6},
+{r:105,n:"Jonathon Brooks",t:"CAR",p:"RB",bye:5},
+{r:106,n:"Patrick Mahomes",t:"KC",p:"QB",bye:5,flag:"warn",note:"No setbacks in camp, optimism he plays Wk1 off ACL/LCL tear, nothing officially confirmed"},
+{r:107,n:"KC Concepcion",t:"CLE",p:"WR",bye:11},
+{r:108,n:"Rashid Shaheed",t:"SEA",p:"WR",bye:11},
+{r:109,n:"LA Rams",t:"LAR",p:"DEF",bye:11},
+{r:110,n:"Justin Herbert",t:"LAC",p:"QB",bye:7},
+{r:111,n:"Kenny Gainwell",t:"TB",p:"RB",bye:10},
+{r:112,n:"Bo Nix",t:"DEN",p:"QB",bye:10},
+{r:113,n:"Jerry Jeudy",t:"CLE",p:"WR",bye:11},
+{r:114,n:"George Kittle",t:"SF",p:"TE",bye:8,flag:"good",note:"Returned to practice ahead of schedule from Achilles injury"},
+{r:115,n:"Minnesota",t:"MIN",p:"DEF",bye:6},
+{r:116,n:"Jacory Croskey-Merritt",t:"WAS",p:"RB",bye:7},
+{r:117,n:"Aaron Jones Sr.",t:"MIN",p:"RB",bye:6},
+{r:118,n:"Kyle Monangai",t:"CHI",p:"RB",bye:10,flag:"bad",note:"Hyperextended knee, expected to miss multiple weeks — Swift benefits"},
+{r:119,n:"Kyle Pitts Sr.",t:"ATL",p:"TE",bye:11},
+{r:120,n:"RJ Harvey",t:"DEN",p:"RB",bye:10},
+{r:121,n:"Tucker Kraft",t:"GB",p:"TE",bye:11},
+{r:122,n:"Jaxson Dart",t:"NYG",p:"QB",bye:8},
+{r:123,n:"New England",t:"NE",p:"DEF",bye:11},
+{r:124,n:"Tre Tucker",t:"LV",p:"WR",bye:13},
+{r:125,n:"Philadelphia",t:"PHI",p:"DEF",bye:10},
+{r:126,n:"Detroit",t:"DET",p:"DEF",bye:6},
+{r:127,n:"Sam LaPorta",t:"DET",p:"TE",bye:6,flag:"good",note:"Minor hip bruise, fine for Wk1"},
+{r:128,n:"Jordan Mason",t:"MIN",p:"RB",bye:6},
+{r:129,n:"Dallas Goedert",t:"PHI",p:"TE",bye:10},
+{r:130,n:"De'Zhaun Stribling",t:"SF",p:"WR",bye:8},
+];
+function tierOf(r){
+  if(r<=12) return 1; if(r<=24) return 2; if(r<=36) return 3; if(r<=50) return 4;
+  if(r<=65) return 5; if(r<=80) return 6; if(r<=100) return 7; if(r<=115) return 8; return 9;
+}
+players.forEach(pl=>pl.tier=tierOf(pl.r));
+
+// ---- Bilimoriya roster shape ----
+const ROSTER_SLOTS = [
+  {label:"QB",match:["QB"]},
+  {label:"WR",match:["WR"]},
+  {label:"WR",match:["WR"]},
+  {label:"RB",match:["RB"]},
+  {label:"RB",match:["RB"]},
+  {label:"TE",match:["TE"]},
+  {label:"FLEX",match:["RB","WR","TE"]},
+  {label:"K",match:["K"]},
+  {label:"DEF",match:["DEF"]},
+  {label:"BN",match:["QB","RB","WR","TE","K","DEF"]},
+  {label:"BN",match:["QB","RB","WR","TE","K","DEF"]},
+  {label:"BN",match:["QB","RB","WR","TE","K","DEF"]},
+  {label:"BN",match:["QB","RB","WR","TE","K","DEF"]},
+  {label:"BN",match:["QB","RB","WR","TE","K","DEF"]},
+  {label:"BN",match:["QB","RB","WR","TE","K","DEF"]},
+];
+
+let state = { drafted: {}, myTeam: [] }; // drafted: {rank: true/'me'}
+let posFilter = "ALL";
+
+function save(){ try{ localStorage.setItem('bilimoriyaDraft', JSON.stringify(state)); }catch(e){} }
+function load(){
+  try{
+    const raw = localStorage.getItem('bilimoriyaDraft');
+    if(raw) state = JSON.parse(raw);
+  }catch(e){}
+}
+function resetAll(){
+  if(!confirm('Reset the whole draft board? This clears all drafted players and your roster.')) return;
+  state = { drafted:{}, myTeam:[] };
+  save(); render();
+}
+
+function setPos(p){
+  posFilter = p;
+  document.querySelectorAll('.posbtn').forEach(b=>b.classList.toggle('active', b.dataset.pos===p));
+  render();
+}
+
+function toggleDraft(rank, mine){
+  if(state.drafted[rank]){
+    // undo
+    delete state.drafted[rank];
+    state.myTeam = state.myTeam.filter(r=>r!==rank);
+  } else {
+    state.drafted[rank] = mine ? 'me' : 'other';
+    if(mine) state.myTeam.push(rank);
+  }
+  save(); render();
+}
+
+function bestFitLabel(pos){
+  // used for roster assignment greedy fill
+  return pos;
+}
+
+function computeRoster(){
+  const picks = state.myTeam.map(r=>players.find(p=>p.r===r)).filter(Boolean);
+  // sort by rank so best players fill best-fit slots first
+  picks.sort((a,b)=>a.r-b.r);
+  const slots = ROSTER_SLOTS.map(s=>({...s, filled:null}));
+  picks.forEach(pl=>{
+    // try to find an open slot matching, preferring non-flex/non-bench specific slot first
+    let slot = slots.find(s=>!s.filled && s.match.length===1 && s.match[0]===pl.p);
+    if(!slot) slot = slots.find(s=>!s.filled && s.match.includes(pl.p) && s.label==='FLEX');
+    if(!slot) slot = slots.find(s=>!s.filled && s.label==='BN');
+    if(slot) slot.filled = pl;
+  });
+  return slots;
+}
+
+function render(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  let list = players;
+  if(posFilter==='FLAG') list = list.filter(p=>p.flag);
+  else if(posFilter!=='ALL') list = list.filter(p=>p.p===posFilter);
+  if(q) list = list.filter(p=>p.n.toLowerCase().includes(q) || p.t.toLowerCase().includes(q));
+
+  list.forEach(p=>{
+    const tr = document.createElement('tr');
+    const draftedState = state.drafted[p.r];
+    if(draftedState) tr.classList.add('drafted');
+    const flagHtml = p.flag ? `<span class="flag ${p.flag}">${p.flag==='bad'?'⛔':p.flag==='warn'?'⚠':'✓'} ${p.flag==='bad'?'RISK':p.flag==='warn'?'WATCH':'CLEARED'}</span>` : '';
+    const noteHtml = p.note ? `<span class="note">${p.note}</span>` : '';
+    tr.innerHTML = `
+      <td>${p.r}</td>
+      <td><strong>${p.n}</strong>${flagHtml}${noteHtml}</td>
+      <td class="pos-${p.p}">${p.p}</td>
+      <td>${p.t}</td>
+      <td>${p.bye}</td>
+      <td><span class="tier">T${p.tier}</span></td>
+      <td>
+        ${draftedState ?
+          `<button class="draftbtn" onclick="toggleDraft(${p.r})">${draftedState==='me'?'✓ Mine':'Undo'}</button>`
+          : `<button class="draftbtn" onclick="toggleDraft(${p.r}, true)">Draft (me)</button>
+             <button class="draftbtn" style="margin-left:4px" onclick="toggleDraft(${p.r}, false)">Taken</button>`
+        }
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  const totalDrafted = Object.keys(state.drafted).length;
+  document.getElementById('statline').innerHTML =
+    `<span><b>${players.length - totalDrafted}</b> available</span>
+     <span><b>${totalDrafted}</b> drafted total</span>
+     <span><b>${state.myTeam.length}</b> on your team</span>`;
+
+  // roster panel
+  const slots = computeRoster();
+  const rosterDiv = document.getElementById('roster');
+  rosterDiv.innerHTML = slots.map(s=>{
+    return `<div class="rosterslot ${s.filled?'filled':''}">
+      <span class="slotlabel">${s.label}</span>
+      <span class="slotname">${s.filled ? s.filled.n + ' <span class="sub">('+s.filled.t+')</span>' : '—'}</span>
+      ${s.filled?`<button class="removebtn" onclick="toggleDraft(${s.filled.r})">✕</button>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('pickCount').textContent = `(${state.myTeam.length}/${ROSTER_SLOTS.length})`;
+
+  // needs
+  const needCounts = {QB:0,RB:0,WR:0,TE:0,K:0,DEF:0};
+  state.myTeam.forEach(r=>{ const pl=players.find(x=>x.r===r); if(pl) needCounts[pl.p]++; });
+  const targets = {QB:1,RB:3,WR:3,TE:1,K:1,DEF:1}; // rough starter+flex targets, bench flexible
+  const needsDiv = document.getElementById('needs');
+  needsDiv.innerHTML = Object.keys(targets).map(pos=>{
+    const have = needCounts[pos]||0;
+    const need = targets[pos];
+    const ok = have>=need;
+    return `<div>${pos}: <b>${have}</b> drafted ${ok?'<span class="needbadge ok">filled</span>':'<span class="needbadge">need '+(need-have)+' more</span>'}</div>`;
+  }).join('');
+}
+
+load();
+render();
+</script>
+</body>
+</html>
